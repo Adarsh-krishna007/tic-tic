@@ -4,43 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic-Tac-Toe</title>
-    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        .hidden {
+            display: none;
+        }
+        #menu, #register, #login, #game, #records, #gameBoard {
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #fff;
+            width: 300px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin: 10px auto;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            cursor: pointer;
+        }
+        .cell.x {
+            color: red;
+        }
+        .cell.o {
+            color: blue;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        .message {
+            margin: 10px;
+            font-size: 1.5em;
+        }
+        #recordList div {
+            margin: 5px 0;
+        }
+    </style>
 </head>
 <body>
     <div id="menu">
         <h1>Tic-Tac-Toe</h1>
-        <button onclick="showRegister()">Register</button>
-        <button onclick="showLogin()">Login</button>
+        <button id="registerBtn">Register</button>
+        <button id="loginBtn">Login</button>
     </div>
 
     <div id="register" class="hidden">
         <h2>Register</h2>
         <input type="text" id="regUsername" placeholder="Username">
         <input type="password" id="regPassword" placeholder="Password">
-        <button onclick="register()">Register</button>
-        <button onclick="showMenu()">Back to Menu</button>
+        <button id="registerSubmit">Register</button>
+        <button id="backToMenuFromRegister">Back to Menu</button>
     </div>
 
     <div id="login" class="hidden">
         <h2>Login</h2>
         <input type="text" id="loginUsername" placeholder="Username">
         <input type="password" id="loginPassword" placeholder="Password">
-        <button onclick="login()">Login</button>
-        <button onclick="showMenu()">Back to Menu</button>
+        <button id="loginSubmit">Login</button>
+        <button id="backToMenuFromLogin">Back to Menu</button>
     </div>
 
     <div id="game" class="hidden">
         <h2>Game Room</h2>
         <input type="text" id="roomCode" placeholder="Enter Room Code">
-        <button onclick="joinRoom()">Join Room</button>
-        <button onclick="createRoom()">Create Room</button>
-        <button onclick="showMenu()">Back to Menu</button>
+        <button id="joinRoom">Join Room</button>
+        <button id="createRoom">Create Room</button>
+        <button id="backToMenuFromGame">Back to Menu</button>
     </div>
 
     <div id="records" class="hidden">
         <h2>Records</h2>
         <div id="recordList"></div>
-        <button onclick="showMenu()">Back to Menu</button>
+        <button id="backToMenuFromRecords">Back to Menu</button>
     </div>
 
     <div id="gameBoard" class="hidden">
@@ -61,6 +113,202 @@
         <button id="backToMenuButton" class="hidden">Back to Menu</button>
     </div>
 
-    <script defer src="https://github.com/Adarsh-krishna007/tic-tic/blob/main/tic-tac-toe/assets/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menu = document.getElementById('menu');
+            const register = document.getElementById('register');
+            const login = document.getElementById('login');
+            const game = document.getElementById('game');
+            const records = document.getElementById('records');
+            const gameBoard = document.getElementById('gameBoard');
+            const message = document.getElementById('message');
+            const recordList = document.getElementById('recordList');
+
+            let currentUser = null;
+            let currentRoom = null;
+            let turn = 'X';
+            let isGameActive = true;
+
+            // Show and hide functions
+            function showMenu() {
+                menu.classList.remove('hidden');
+                register.classList.add('hidden');
+                login.classList.add('hidden');
+                game.classList.add('hidden');
+                records.classList.add('hidden');
+                gameBoard.classList.add('hidden');
+            }
+
+            function showRegister() {
+                menu.classList.add('hidden');
+                register.classList.remove('hidden');
+            }
+
+            function showLogin() {
+                menu.classList.add('hidden');
+                login.classList.remove('hidden');
+            }
+
+            function showGame() {
+                game.classList.add('hidden');
+                gameBoard.classList.remove('hidden');
+            }
+
+            function showRecords() {
+                menu.classList.add('hidden');
+                records.classList.remove('hidden');
+                loadRecords();
+            }
+
+            function registerUser() {
+                const username = document.getElementById('regUsername').value;
+                const password = document.getElementById('regPassword').value;
+                if (username && password) {
+                    fetch('assets/data.json')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.users[username]) {
+                                alert('User already exists!');
+                            } else {
+                                data.users[username] = { password, wins: 0, losses: 0 };
+                                saveData(data);
+                                alert('Registered successfully!');
+                                showLogin();
+                            }
+                        });
+                } else {
+                    alert('Please enter a username and password.');
+                }
+            }
+
+            function loginUser() {
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+                if (username && password) {
+                    fetch('assets/data.json')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.users[username] && data.users[username].password === password) {
+                                currentUser = username;
+                                showGame();
+                            } else {
+                                alert('Invalid credentials!');
+                            }
+                        });
+                } else {
+                    alert('Please enter a username and password.');
+                }
+            }
+
+            function createRoom() {
+                const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+                currentRoom = roomCode;
+                // Save room data if needed
+                showGame();
+            }
+
+            function joinRoom() {
+                const roomCode = document.getElementById('roomCode').value;
+                // Check if room exists
+                currentRoom = roomCode;
+                showGame();
+            }
+
+            function loadRecords() {
+                fetch('assets/data.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        const records = Object.entries(data.users).map(([username, stats]) => 
+                            `<div>${username}: Wins - ${stats.wins}, Losses - ${stats.losses}</div>`
+                        );
+                        recordList.innerHTML = records.join('');
+                    });
+            }
+
+            function saveData(data) {
+                fetch('assets/data.json', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+            }
+
+            const cells = document.querySelectorAll('[data-cell]');
+            document.getElementById('restartButton').addEventListener('click', restartGame);
+            document.getElementById('replayButton').addEventListener('click', replayGame);
+            document.getElementById('backToMenuButton').addEventListener('click', showMenu);
+
+            cells.forEach(cell => cell.addEventListener('click', handleClick));
+
+            function handleClick(e) {
+                const cell = e.target;
+                if (cell.classList.contains('x') || cell.classList.contains('o') || !isGameActive) return;
+                cell.classList.add(turn);
+                if (checkWin(turn)) {
+                    message.textContent = `${turn} wins!`;
+                    isGameActive = false;
+                    updateStats(turn);
+                } else if (Array.from(cells).every(cell => cell.classList.contains('x') || cell.classList.contains('o'))) {
+                    message.textContent = 'It\'s a tie!';
+                    isGameActive = false;
+                    document.getElementById('replayButton').classList.remove('hidden');
+                    document.getElementById('backToMenuButton').classList.remove('hidden');
+                } else {
+                    turn = turn === 'X' ? 'O' : 'X';
+                    message.textContent = `${turn}'s turn`;
+                }
+            }
+
+            function checkWin(player) {
+                const winPatterns = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                    [0, 4, 8], [2, 4, 6] // diagonals
+                ];
+                return winPatterns.some(pattern => 
+                    pattern.every(index => cells[index].classList.contains(player))
+                );
+            }
+
+            function restartGame() {
+                cells.forEach(cell => cell.classList.remove('x', 'o'));
+                isGameActive = true;
+                turn = 'X';
+                message.textContent = '';
+            }
+
+            function replayGame() {
+                restartGame();
+                document.getElementById('replayButton').classList.add('hidden');
+                document.getElementById('backToMenuButton').classList.add('hidden');
+            }
+
+            function updateStats(winner) {
+                fetch('assets/data.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (winner === 'X') {
+                            data.users[currentUser].wins += 1;
+                        } else {
+                            data.users[currentUser].losses += 1;
+                        }
+                        saveData(data);
+                        document.getElementById('replayButton').classList.remove('hidden');
+                        document.getElementById('backToMenuButton').classList.remove('hidden');
+                    });
+            }
+
+            document.getElementById('registerBtn').addEventListener('click', showRegister);
+            document.getElementById('loginBtn').addEventListener('click', showLogin);
+            document.getElementById('backToMenuFromRegister').addEventListener('click', showMenu);
+            document.getElementById('backToMenuFromLogin').addEventListener('click', showMenu);
+            document.getElementById('createRoom').addEventListener('click', createRoom);
+            document.getElementById('joinRoom').addEventListener('click', joinRoom);
+            document.getElementById('backToMenuFromGame').addEventListener('click', showMenu);
+            document.getElementById('backToMenuFromRecords').addEventListener('click', showMenu);
+        });
+    </script>
 </body>
 </html>
