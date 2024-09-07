@@ -226,6 +226,7 @@
             }
 
             function saveData(data) {
+                // Save data to the JSON file (for static site use)
                 fetch('assets/data.json', {
                     method: 'PUT',
                     headers: {
@@ -300,8 +301,8 @@
                     });
             }
 
-            document.getElementById('registerBtn').addEventListener('click', showRegister);
-            document.getElementById('loginBtn').addEventListener('click', showLogin);
+            document.getElementById('registerSubmit').addEventListener('click', registerUser);
+            document.getElementById('loginSubmit').addEventListener('click', loginUser);
             document.getElementById('backToMenuFromRegister').addEventListener('click', showMenu);
             document.getElementById('backToMenuFromLogin').addEventListener('click', showMenu);
             document.getElementById('createRoom').addEventListener('click', createRoom);
